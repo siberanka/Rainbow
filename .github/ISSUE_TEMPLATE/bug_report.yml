@@ -1,0 +1,43 @@
+name: Twilight bug report
+description: Report a reproducible conversion, deployment, or compatibility problem.
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Remove server addresses, credentials, paid/private assets, and player data before attaching files.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Twilight, server, Java, Geyser, and affected provider versions.
+    validations:
+      required: true
+  - type: dropdown
+    id: operation
+    attributes:
+      label: Operation
+      options: [startup, scan, convert, deploy, rollback, runtime presentation]
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Minimal commands, content type, expected result, and actual result.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized Twilight operation log
+      description: Paste the relevant plugins/Twilight/logs entry or attach a sanitized file.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data safety
+      options:
+        - label: I removed credentials, server addresses, player data, and assets I cannot redistribute.
+          required: true

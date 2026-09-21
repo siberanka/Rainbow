@@ -1,0 +1,26 @@
+name: Twilight compatibility request
+description: Request support for a documented Java/Geyser content format or provider API.
+title: "[Compatibility] "
+labels: [enhancement]
+body:
+  - type: input
+    id: target
+    attributes:
+      label: Content or API
+      description: Name and version of the item, mob, glyph, menu, biome, provider, or format.
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Public documentation
+      description: Link public API/schema documentation and explain the expected Java and Bedrock behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable first/third-person, GUI, animation, runtime, or biome results.
+    validations:
+      required: true

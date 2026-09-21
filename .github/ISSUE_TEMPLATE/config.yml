@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Twilight compatibility and validation guide
+    url: https://github.com/siberanka/Twilight/blob/master/docs/COMPATIBILITY.md
+    about: Review implemented support and open release gates before filing an issue.

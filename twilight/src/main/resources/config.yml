@@ -1,0 +1,25 @@
+# Twilight never replaces vanilla Bedrock assets unless this is explicitly enabled.
+vanilla-override: false
+
+generation:
+  strict: true
+  # Startup and supported provider reload events trigger a debounced conversion.
+  auto-build-on-startup: true
+  sync-provider-changes: true
+  startup-delay-ticks: 40
+  # Wait for provider reload/pack commands to finish writing their outputs.
+  provider-command-delay-ticks: 100
+  maximum-source-bytes: 1073741824
+  maximum-archive-entries: 100000
+  # Hash-verified Mojang client/asset caches resolve explicit vanilla dependencies.
+  download-vanilla-assets: true
+
+sources:
+  auto-discover: true
+  additional: []
+
+geyser:
+  directory: auto
+  deploy-after-build: true
+  reload-after-deploy: true
+  backups-to-keep: 3
