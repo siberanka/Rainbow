@@ -120,7 +120,7 @@ class BedrockPackCompilerTest {
     }
 
     @Test
-    void fitsLargeRotatedGeometryInsideTheBedrockHandViewport() throws Exception {
+    void preservesLargeModelJavaHandTransformWithoutImplicitFitting() throws Exception {
         Path source = root.resolve("wide-model-source");
         write(source, "assets/demo/items/wide.json", """
                 {"model":{"type":"minecraft:model","model":"demo:item/wide"}}
@@ -152,9 +152,66 @@ class BedrockPackCompilerTest {
                     .findFirst().orElseThrow().getValue().getAsJsonObject();
             JsonArray scale = firstPerson.getAsJsonObject("bones").getAsJsonObject("bone")
                     .getAsJsonArray("scale");
-            assertTrue(scale.get(0).getAsDouble() > 0);
-            assertTrue(scale.get(0).getAsDouble() < 0.5,
-                    "geometry projection must reduce a model that would clip despite an ordinary translation");
+            JsonArray position = firstPerson.getAsJsonObject("bones").getAsJsonObject("bone")
+                    .getAsJsonArray("position");
+            assertEquals(0.5, scale.get(0).getAsDouble(), 1.0e-9);
+            assertEquals(0.5, scale.get(1).getAsDouble(), 1.0e-9);
+            assertEquals(0.5, scale.get(2).getAsDouble(), 1.0e-9);
+            assertEquals(-4.0, position.get(0).getAsDouble(), 1.0e-9);
+            assertEquals(10.5, position.get(1).getAsDouble(), 1.0e-9);
+            assertEquals(0.5, position.get(2).getAsDouble(), 1.0e-9);
+        }
+    }
+
+    @Test
+    void derivesHandheldPoseFromTheResolvedJavaModelInsteadOfTheBaseItem() throws Exception {
+        Path source = root.resolve("model-parent-pose-source");
+        write(source, "assets/demo/models/item/axe_up.json", """
+                {"parent":"minecraft:item/handheld","textures":{"all":"demo:item/axe_up"},
+                 "display":{
+                   "firstperson_righthand":{"rotation":[17,-90,0],"translation":[2.6,7,-0.008],"scale":[1.6,1.6,1.6]},
+                   "thirdperson_righthand":{"rotation":[0,-90,0],"translation":[0,7,1],"scale":[2.4,2.4,2.4]}},
+                 "elements":[{"from":[2,0,7],"to":[14,16,9],"faces":{
+                   "north":{"texture":"#all"},"south":{"texture":"#all"},
+                   "east":{"texture":"#all"},"west":{"texture":"#all"},
+                   "up":{"texture":"#all"},"down":{"texture":"#all"}}}]}
+                """);
+        write(source, "assets/demo/models/item/generated_box.json", """
+                {"parent":"minecraft:item/generated","textures":{"all":"demo:item/generated_box"},
+                 "elements":[{"from":[2,0,7],"to":[14,16,9],"faces":{
+                   "north":{"texture":"#all"},"south":{"texture":"#all"},
+                   "east":{"texture":"#all"},"west":{"texture":"#all"},
+                   "up":{"texture":"#all"},"down":{"texture":"#all"}}}]}
+                """);
+        png(source.resolve("assets/demo/textures/item/axe_up.png"), Color.ORANGE);
+        png(source.resolve("assets/demo/textures/item/generated_box.png"), Color.GREEN);
+        List<CustomItemDescriptor> live = List.of(
+                new CustomItemDescriptor("test", "minecraft:paper", Optional.of("demo:item/axe_up"),
+                        OptionalInt.empty(), "Upright axe"),
+                new CustomItemDescriptor("test", "minecraft:iron_axe", Optional.of("demo:item/generated_box"),
+                        OptionalInt.empty(), "Generated box"));
+
+        BuildResult result = new BedrockPackCompiler(root.resolve("model-parent-pose-data"), config()).build(
+                List.of(new ContentSource("test", ContentSource.Kind.RESOURCE_PACK, source, 1)), live);
+        JsonObject items = JsonParser.parseString(Files.readString(result.outputDirectory()
+                .resolve("custom_mappings/geyser_item_mappings.json"))).getAsJsonObject().getAsJsonObject("items");
+        JsonObject paper = items.getAsJsonArray("minecraft:paper").get(0).getAsJsonObject();
+        JsonObject ironAxe = items.getAsJsonArray("minecraft:iron_axe").get(0).getAsJsonObject();
+        assertTrue(paper.getAsJsonObject("bedrock_options").get("display_handheld").getAsBoolean());
+        assertFalse(ironAxe.getAsJsonObject("bedrock_options").has("display_handheld"));
+
+        String safe = paper.get("bedrock_identifier").getAsString().substring("twilight:".length());
+        try (ZipFile zip = new ZipFile(result.outputDirectory().resolve("pack.zip").toFile())) {
+            JsonObject animations = read(zip, "animations/" + safe + ".animation.json")
+                    .getAsJsonObject("animations");
+            JsonObject first = animations.getAsJsonObject("animation.twilight." + safe + ".first_person_right")
+                    .getAsJsonObject("bones").getAsJsonObject("bone");
+            JsonObject third = animations.getAsJsonObject("animation.twilight." + safe + ".third_person_right")
+                    .getAsJsonObject("bones").getAsJsonObject("bone");
+            assertVector(first.getAsJsonArray("position"), -7.0, 12.492, 2.6);
+            assertVector(first.getAsJsonArray("scale"), 1.6, 1.6, 1.6);
+            assertVector(third.getAsJsonArray("position"), 0.0, 13.5, -7.0);
+            assertVector(third.getAsJsonArray("scale"), 2.4, 2.4, 2.4);
         }
     }
 
@@ -210,9 +267,12 @@ class BedrockPackCompilerTest {
                 .resolve("custom_mappings/geyser_item_mappings.json"))).getAsJsonObject().getAsJsonObject("items");
         JsonArray bow = mappings.getAsJsonArray("minecraft:bow");
         assertEquals(1, bow.size());
-        assertTrue(bow.get(0).getAsJsonObject().getAsJsonObject("bedrock_options").get("display_handheld").getAsBoolean());
+        assertFalse(bow.get(0).getAsJsonObject().getAsJsonObject("bedrock_options").has("display_handheld"));
         JsonArray rods = mappings.getAsJsonArray("minecraft:fishing_rod");
         assertEquals(2, rods.size());
+        assertTrue(rods.asList().stream().map(JsonElement::getAsJsonObject)
+                .allMatch(mapping -> mapping.getAsJsonObject("bedrock_options")
+                        .get("display_handheld").getAsBoolean()));
         assertTrue(rods.asList().stream().map(JsonElement::getAsJsonObject)
                 .anyMatch(mapping -> mapping.has("predicate") && mapping.get("predicate").toString().contains("fishing_rod_cast")));
     }
@@ -421,7 +481,7 @@ class BedrockPackCompilerTest {
         assertTrue(mappings.toString().contains("\"value\":\"arrow\""));
         assertTrue(mappings.toString().contains("\"value\":\"rocket\""));
         assertTrue(mappings.asList().stream().map(JsonElement::getAsJsonObject)
-                .allMatch(mapping -> mapping.getAsJsonObject("bedrock_options").get("display_handheld").getAsBoolean()));
+                .noneMatch(mapping -> mapping.getAsJsonObject("bedrock_options").has("display_handheld")));
     }
 
     @Test
@@ -480,10 +540,49 @@ class BedrockPackCompilerTest {
             var entry = zip.getEntry("font/glyph_E0.png");
             assertNotNull(entry);
             BufferedImage page = ImageIO.read(zip.getInputStream(entry));
-            assertEquals(144, page.getWidth());
-            assertEquals(144, page.getHeight());
-            assertEquals(Color.MAGENTA.getRGB(), page.getRGB(0, 0));
-            assertEquals(Color.CYAN.getRGB(), page.getRGB(9, 0));
+            assertEquals(256, page.getWidth());
+            assertEquals(256, page.getHeight());
+            assertEquals(0, page.getRGB(0, 0));
+            assertEquals(Color.MAGENTA.getRGB(), page.getRGB(3, 7));
+            assertEquals(Color.CYAN.getRGB(), page.getRGB(19, 7));
+        }
+    }
+
+    @Test
+    void keepsChatEmojiHeightStableWhenTheSamePageContainsAnOversizedGuiGlyph() throws Exception {
+        Path source = root.resolve("mixed-font-height-source");
+        String emoji = Character.toString(0xE000);
+        String gui = Character.toString(0xE00F);
+        write(source, "assets/minecraft/font/default.json", """
+                {"providers":[
+                  {"type":"bitmap","file":"demo:font/emoji.png","height":9,"ascent":8,"chars":["%s"]},
+                  {"type":"bitmap","file":"demo:font/gui.png","height":256,"ascent":255,"chars":["%s"]}
+                ]}
+                """.formatted(emoji, gui));
+        Path emojiTexture = source.resolve("assets/demo/textures/font/emoji.png");
+        Files.createDirectories(emojiTexture.getParent());
+        BufferedImage emojiImage = new BufferedImage(9, 9, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 9; y++) for (int x = 0; x < 9; x++) {
+            emojiImage.setRGB(x, y, Color.MAGENTA.getRGB());
+        }
+        ImageIO.write(emojiImage, "PNG", emojiTexture.toFile());
+        BufferedImage guiImage = new BufferedImage(256, 256, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 256; y++) for (int x = 0; x < 256; x++) {
+            guiImage.setRGB(x, y, Color.CYAN.getRGB());
+        }
+        ImageIO.write(guiImage, "PNG", source.resolve("assets/demo/textures/font/gui.png").toFile());
+
+        BuildResult result = new BedrockPackCompiler(root.resolve("mixed-font-height-data"), config()).build(
+                List.of(new ContentSource("test", ContentSource.Kind.RESOURCE_PACK, source, 1)), List.of());
+
+        try (ZipFile zip = new ZipFile(result.outputDirectory().resolve("pack.zip").toFile())) {
+            BufferedImage page = ImageIO.read(zip.getInputStream(zip.getEntry("font/glyph_E0.png")));
+            assertEquals(256, page.getWidth());
+            assertEquals(0, page.getRGB(3, 6));
+            assertEquals(Color.MAGENTA.getRGB(), page.getRGB(3, 7));
+            assertEquals(Color.MAGENTA.getRGB(), page.getRGB(3, 15));
+            assertEquals(Color.CYAN.getRGB(), page.getRGB(240, 0));
+            assertEquals(Color.CYAN.getRGB(), page.getRGB(255, 15));
         }
     }
 
@@ -747,6 +846,12 @@ class BedrockPackCompilerTest {
         try (var reader = new InputStreamReader(zip.getInputStream(zip.getEntry(name)), StandardCharsets.UTF_8)) {
             return JsonParser.parseReader(reader).getAsJsonObject();
         }
+    }
+
+    private static void assertVector(JsonArray actual, double x, double y, double z) {
+        assertEquals(x, actual.get(0).getAsDouble(), 1.0e-9);
+        assertEquals(y, actual.get(1).getAsDouble(), 1.0e-9);
+        assertEquals(z, actual.get(2).getAsDouble(), 1.0e-9);
     }
 
     private TwilightConfig config() {

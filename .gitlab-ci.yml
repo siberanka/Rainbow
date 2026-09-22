@@ -47,9 +47,9 @@ release:
       'twilight/build/libs/Twilight.jar.sha256#Twilight.jar.sha256#other'
       --repo "$CI_PROJECT_PATH"
       --ref "$CI_COMMIT_SHA"
-      --name "Twilight 1.0 Pre-release"
+      --name "Twilight ${CI_COMMIT_TAG#v}"
       --notes-file RELEASE_NOTES.md
       --use-package-registry
       --no-update
   rules:
-    - if: '$CI_COMMIT_TAG == "v1.0.0-pre.1"'
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-pre\.\d+$/'

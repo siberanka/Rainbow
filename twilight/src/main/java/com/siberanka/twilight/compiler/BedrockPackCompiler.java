@@ -43,8 +43,6 @@ public final class BedrockPackCompiler {
     private static final long ZIP_TIME = 315_532_800_000L;
     private static final int MAX_PACK_VERSION_COMPONENT = 65_535;
     private static final int MAX_BEDROCK_SAFE_IDENTIFIER_LENGTH = 36;
-    private static final double BEDROCK_HAND_TRANSLATION_LIMIT = 8.0;
-    private static final double BEDROCK_HAND_VIEWPORT_LIMIT = 10.75;
     private final Path dataDirectory;
     private final TwilightConfig config;
     private final String minecraftVersion;
@@ -106,7 +104,7 @@ public final class BedrockPackCompiler {
                         packFiles.put("models/entity/geometry." + stateSafe + ".geo.json",
                                 jsonBytes(geometry(stateSafe, stateModel, atlas, bounds)));
                         packFiles.put("animations/" + stateSafe + ".animation.json",
-                                jsonBytes(animations(stateSafe, stateModel.display(), bounds)));
+                                jsonBytes(animations(stateSafe, stateModel.display())));
                     }
                     packFiles.put("render_controllers/" + safe + ".render_controllers.json",
                             jsonBytes(dynamicRenderController(safe, dynamicWeapon.states().size())));
@@ -125,7 +123,7 @@ public final class BedrockPackCompiler {
                     packFiles.put("models/entity/geometry." + safe + ".geo.json",
                             jsonBytes(geometry(safe, model, atlas, bounds)));
                     packFiles.put("animations/" + safe + ".animation.json",
-                            jsonBytes(animations(safe, model.display(), bounds)));
+                            jsonBytes(animations(safe, model.display())));
                     packFiles.put("attachables/" + safe + ".json",
                             jsonBytes(attachable(identifier, safe, texturePath)));
                     if (model.isThreeDimensional()) threeDimensional++;
@@ -148,7 +146,7 @@ public final class BedrockPackCompiler {
                 iconEntry.addProperty("textures", model.isThreeDimensional() || customFlat || dynamicWeapon != null
                         ? "textures/twilight/" + safe + "_icon" : texturePath);
                 textureData.add(iconKey, iconEntry);
-                addMapping(mappedItems, candidate, identifier, iconKey);
+                addMapping(mappedItems, candidate, identifier, iconKey, model.handheld());
                 converted++;
             } catch (Exception failure) {
                 problems.add(candidate.baseItem() + " -> " + candidate.visualModels() + ": " + failure.getMessage());
@@ -617,18 +615,18 @@ public final class BedrockPackCompiler {
                 " >= " + finalThreshold + " ? 3 : (" + progress + " >= " + secondThreshold + " ? 2 : 1)) : 0";
     }
 
-    private static JsonObject animations(String safe, JsonObject display, GeometryBounds bounds) {
+    private static JsonObject animations(String safe, JsonObject display) {
         JsonObject definitions = new JsonObject();
         JsonObject firstRight = transform(display, "firstperson_righthand", null);
         JsonObject firstLeft = transform(display, "firstperson_lefthand", firstRight);
         JsonObject thirdRight = transform(display, "thirdperson_righthand", null);
         JsonObject thirdLeft = transform(display, "thirdperson_lefthand", thirdRight);
-        definitions.add("animation.twilight." + safe + ".first_person_right", animation(mapFirst(firstRight, bounds)));
+        definitions.add("animation.twilight." + safe + ".first_person_right", animation(mapFirst(firstRight)));
         definitions.add("animation.twilight." + safe + ".first_person_left", animation(mapFirst(
-                mirror(firstLeft, display.has("firstperson_lefthand")), bounds)));
-        definitions.add("animation.twilight." + safe + ".third_person_right", animation(mapThird(thirdRight, bounds)));
+                mirror(firstLeft, display.has("firstperson_lefthand")))));
+        definitions.add("animation.twilight." + safe + ".third_person_right", animation(mapThird(thirdRight)));
         definitions.add("animation.twilight." + safe + ".third_person_left", animation(mapThird(
-                mirror(thirdLeft, display.has("thirdperson_lefthand")), bounds)));
+                mirror(thirdLeft, display.has("thirdperson_lefthand")))));
         definitions.add("animation.twilight." + safe + ".head", animation(mapHead(transform(display, "head", null))));
         JsonObject root = new JsonObject(); root.addProperty("format_version", "1.8.0"); root.add("animations", definitions); return root;
     }
@@ -639,18 +637,16 @@ public final class BedrockPackCompiler {
         JsonObject animation = new JsonObject(); animation.addProperty("loop", true); animation.add("bones", bones); return animation;
     }
 
-    private static MappedTransform mapFirst(JsonObject transform, GeometryBounds bounds) {
+    private static MappedTransform mapFirst(JsonObject transform) {
         double[] t = vector(transform.getAsJsonArray("translation"), 0, 0, 0), r = vector(transform.getAsJsonArray("rotation"), 0, 0, 0), s = vector(transform.getAsJsonArray("scale"), 1, 1, 1);
         Quaternion q = Quaternion.axis(-90, 1, 0, 0).mul(Quaternion.axis(r[0], 0, 0, 1)).mul(Quaternion.axis(r[1], 1, 0, 0)).mul(Quaternion.axis(-r[2], 0, 1, 0));
-        double fit = Math.min(handFit(t), viewportFit(t, s, q, bounds, true));
-        return new MappedTransform(new double[]{-t[1] * fit, 12.5 + t[2] * fit, t[0] * fit}, q.eulerXYZ(), scale(s, fit));
+        return new MappedTransform(new double[]{-t[1], 12.5 + t[2], t[0]}, q.eulerXYZ(), s);
     }
 
-    private static MappedTransform mapThird(JsonObject transform, GeometryBounds bounds) {
+    private static MappedTransform mapThird(JsonObject transform) {
         double[] t = vector(transform.getAsJsonArray("translation"), 0, 0, 0), r = vector(transform.getAsJsonArray("rotation"), 0, 0, 0), s = vector(transform.getAsJsonArray("scale"), 1, 1, 1);
         Quaternion q = Quaternion.axis(90, 1, 0, 0).mul(Quaternion.axis(-r[0], 1, 0, 0)).mul(Quaternion.axis(-r[1], 0, 0, 1)).mul(Quaternion.axis(-r[2], 0, 1, 0));
-        double fit = Math.min(handFit(t), viewportFit(t, s, q, bounds, false));
-        return new MappedTransform(new double[]{-t[0] * fit, 12.5 + t[2] * fit, -t[1] * fit}, q.eulerXYZ(), scale(s, fit));
+        return new MappedTransform(new double[]{-t[0], 12.5 + t[2], -t[1]}, q.eulerXYZ(), s);
     }
 
     private static MappedTransform mapHead(JsonObject transform) {
@@ -716,25 +712,8 @@ public final class BedrockPackCompiler {
         return bounds;
     }
 
-    private static double viewportFit(double[] translation, double[] scale, Quaternion rotation,
-                                      GeometryBounds bounds, boolean firstPerson) {
-        double projectedX = 0, projectedZ = 0;
-        for (double[] corner : bounds.cornersAroundBonePivot()) {
-            double[] rotated = rotation.transform(new double[]{
-                    corner[0] * scale[0], corner[1] * scale[1], corner[2] * scale[2]
-            });
-            projectedX = Math.max(projectedX, Math.abs(rotated[0]));
-            projectedZ = Math.max(projectedZ, Math.abs(rotated[2]));
-        }
-        double screenX = firstPerson ? -translation[1] : -translation[0];
-        double screenZ = firstPerson ? translation[0] : -translation[1];
-        double occupied = Math.max(Math.abs(screenX) + projectedX, Math.abs(screenZ) + projectedZ);
-        if (!Double.isFinite(occupied)) throw new IllegalArgumentException("Item display viewport bounds must be finite");
-        return occupied <= BEDROCK_HAND_VIEWPORT_LIMIT || occupied == 0
-                ? 1 : BEDROCK_HAND_VIEWPORT_LIMIT / occupied;
-    }
-
-    private static void addMapping(JsonObject mappedItems, ItemCandidate candidate, String identifier, String iconKey) {
+    private static void addMapping(JsonObject mappedItems, ItemCandidate candidate, String identifier, String iconKey,
+                                   boolean displayHandheld) {
         JsonArray definitions = mappedItems.has(candidate.baseItem()) ? mappedItems.getAsJsonArray(candidate.baseItem()) : new JsonArray();
         JsonObject mapping = new JsonObject();
         if (candidate.customModelData().isPresent()) { mapping.addProperty("type", "legacy"); mapping.addProperty("custom_model_data", candidate.customModelData().getAsInt()); }
@@ -748,7 +727,7 @@ public final class BedrockPackCompiler {
         if (candidate.priority() != 0) mapping.addProperty("priority", candidate.priority());
         JsonObject options = new JsonObject();
         options.addProperty("icon", iconKey);
-        if (isHandheld(candidate.baseItem())) options.addProperty("display_handheld", true);
+        if (displayHandheld) options.addProperty("display_handheld", true);
         mapping.add("bedrock_options", options);
         definitions.add(mapping); mappedItems.add(candidate.baseItem(), definitions);
     }
@@ -770,20 +749,8 @@ public final class BedrockPackCompiler {
         catch (NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
     }
 
-    private static boolean isHandheld(String baseItem) {
-        String path = baseItem.substring(baseItem.indexOf(':') + 1);
-        return path.equals("bow") || path.equals("crossbow") || path.equals("fishing_rod") || path.equals("trident") ||
-                path.endsWith("_sword") || path.endsWith("_axe") || path.endsWith("_pickaxe") ||
-                path.endsWith("_shovel") || path.endsWith("_hoe") || path.endsWith("_spear");
-    }
-
     private static String mapFace(String face) { return switch (face) { case "north" -> "south"; case "south" -> "north"; default -> face; }; }
     private static JsonObject condition(String animation, String expression) { JsonObject value = new JsonObject(); value.addProperty(animation, expression); return value; }
-    private static double handFit(double[] value) {
-        double max = Math.max(Math.abs(value[0]), Math.max(Math.abs(value[1]), Math.abs(value[2])));
-        if (!Double.isFinite(max)) throw new IllegalArgumentException("Item display translation must be finite");
-        return max > BEDROCK_HAND_TRANSLATION_LIMIT ? BEDROCK_HAND_TRANSLATION_LIMIT / max : 1;
-    }
     private static double[] scale(double[] value, double factor) { return new double[]{value[0] * factor, value[1] * factor, value[2] * factor}; }
     private static double[] vector(JsonArray value, double x, double y, double z) { if (value == null || value.size() < 3) return new double[]{x,y,z}; return new double[]{value.get(0).getAsDouble(),value.get(1).getAsDouble(),value.get(2).getAsDouble()}; }
     private static double[] vector4(JsonArray value) throws IOException { if (value == null || value.size() < 4) throw new IOException("Face UV must contain four numbers"); return new double[]{value.get(0).getAsDouble(),value.get(1).getAsDouble(),value.get(2).getAsDouble(),value.get(3).getAsDouble()}; }
@@ -834,30 +801,10 @@ public final class BedrockPackCompiler {
                     && Double.isFinite(maxX) && Double.isFinite(maxY) && Double.isFinite(maxZ);
         }
 
-        List<double[]> cornersAroundBonePivot() {
-            List<double[]> corners = new ArrayList<>(8);
-            for (int mask = 0; mask < 8; mask++) {
-                corners.add(new double[]{
-                        (mask & 1) == 0 ? minX : maxX,
-                        ((mask & 2) == 0 ? minY : maxY) - 8,
-                        (mask & 4) == 0 ? minZ : maxZ
-                });
-            }
-            return corners;
-        }
     }
     private record Quaternion(double x,double y,double z,double w) {
         static Quaternion axis(double degrees,double ax,double ay,double az){double h=Math.toRadians(degrees)/2,s=Math.sin(h);return new Quaternion(ax*s,ay*s,az*s,Math.cos(h));}
         Quaternion mul(Quaternion b){return new Quaternion(w*b.x+x*b.w+y*b.z-z*b.y,w*b.y-x*b.z+y*b.w+z*b.x,w*b.z+x*b.y-y*b.x+z*b.w,w*b.w-x*b.x-y*b.y-z*b.z);}
-        double[] transform(double[] value) {
-            double xx=x*x, yy=y*y, zz=z*z;
-            double xy=x*y, xz=x*z, yz=y*z, xw=x*w, yw=y*w, zw=z*w;
-            return new double[]{
-                    (1-2*(yy+zz))*value[0] + 2*(xy-zw)*value[1] + 2*(xz+yw)*value[2],
-                    2*(xy+zw)*value[0] + (1-2*(xx+zz))*value[1] + 2*(yz-xw)*value[2],
-                    2*(xz-yw)*value[0] + 2*(yz+xw)*value[1] + (1-2*(xx+yy))*value[2]
-            };
-        }
         double[] eulerXYZ(){double xx=x*x,yy=y*y,zz=z*z; double m00=1-2*(yy+zz),m01=2*(x*y-z*w),m10=2*(x*y+z*w),m11=1-2*(xx+zz),m20=2*(x*z-y*w),m21=2*(y*z+x*w),m22=1-2*(xx+yy); double sy=Math.max(-1,Math.min(1,-m20)), yv=Math.asin(sy),xv,zv; if(Math.abs(Math.cos(yv))>1e-7){xv=Math.atan2(m21,m22);zv=Math.atan2(m10,m00);}else{xv=Math.atan2(-m01,m11);zv=0;} return new double[]{Math.toDegrees(xv),Math.toDegrees(yv),Math.toDegrees(zv)};}
     }
 }

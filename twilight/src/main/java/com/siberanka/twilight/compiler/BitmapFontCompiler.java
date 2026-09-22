@@ -25,7 +25,7 @@ import java.util.Set;
 
 /** Converts Java bitmap-font graphs into Bedrock BMP glyph pages without contextual collisions. */
 final class BitmapFontCompiler {
-    private static final int MAXIMUM_CELL_SIZE = 16;
+    private static final int BEDROCK_CELL_SIZE = 16;
     private final ResourceIndex resources;
     private final VanillaAssetCache vanillaAssets;
     private final boolean vanillaOverride;
@@ -259,9 +259,11 @@ final class BitmapFontCompiler {
     }
 
     private static BufferedImage compose(List<Glyph> glyphs) {
-        int cellSize = glyphs.stream().mapToInt(BitmapFontCompiler::requiredCellSize)
-                .max().orElse(1);
-        cellSize = Math.max(1, Math.min(MAXIMUM_CELL_SIZE, cellSize));
+        // Bedrock derives glyph metrics from the page cell size. Keeping every
+        // page on the same 16px grid prevents a code point's apparent chat
+        // height from changing merely because it shares (or does not share) a
+        // page with a larger GUI glyph.
+        int cellSize = BEDROCK_CELL_SIZE;
         BufferedImage page = new BufferedImage(cellSize * 16, cellSize * 16, BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = page.createGraphics();
         try {
@@ -282,11 +284,6 @@ final class BitmapFontCompiler {
             graphics.dispose();
         }
         return page;
-    }
-
-    private static int requiredCellSize(Glyph glyph) {
-        double width = glyph.width() * (glyph.declaredHeight() / (double) glyph.height());
-        return (int) Math.ceil(Math.max(1.0, Math.max(width, glyph.declaredHeight())));
     }
 
     private static String fontPath(String identifier) {

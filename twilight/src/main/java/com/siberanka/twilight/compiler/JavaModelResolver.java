@@ -38,8 +38,10 @@ final class JavaModelResolver {
         String current = qualified(identifier, "minecraft");
         ArrayDeque<JsonObject> chain = new ArrayDeque<>();
         java.util.Set<String> seen = new java.util.HashSet<>();
+        boolean handheld = false;
         for (int depth = 0; depth < 64; depth++) {
             if (!seen.add(current)) throw new IOException("Model parent cycle: " + current);
+            if (isHandheldParent(current)) handheld = true;
             ResourceIndex.Asset asset = resources.find(modelPath(current)).orElse(null);
             if (asset == null) {
                 JsonObject builtin = builtinModel(current);
@@ -99,7 +101,8 @@ final class JavaModelResolver {
         }
         Map<String, String> resolvedTextures = new LinkedHashMap<>();
         for (String key : textures.keySet()) resolvedTextures.put(key, resolveTexture(key, textures, "minecraft"));
-        return new ResolvedJavaModel(qualified(identifier, "minecraft"), elements, Map.copyOf(resolvedTextures), display);
+        return new ResolvedJavaModel(qualified(identifier, "minecraft"), elements, Map.copyOf(resolvedTextures),
+                display, handheld);
     }
 
     private static ResolvedJavaModel merge(List<ResolvedJavaModel> models) {
@@ -133,7 +136,7 @@ final class JavaModelResolver {
             }
         }
         return new ResolvedJavaModel("twilight:composite", elements.isEmpty() ? null : elements,
-                Map.copyOf(textures), display);
+                Map.copyOf(textures), display, models.getFirst().handheld());
     }
 
     private static String resolveTexture(String key, Map<String, String> textures, String fallbackNamespace) throws IOException {
@@ -200,8 +203,15 @@ final class JavaModelResolver {
 
     private static boolean isBuiltinParent(String identifier) {
         return identifier.equals("minecraft:item/generated") || identifier.equals("minecraft:item/handheld") ||
-                identifier.equals("minecraft:item/handheld_rod") || identifier.equals("minecraft:block/block") ||
+                identifier.equals("minecraft:item/handheld_rod") || identifier.equals("minecraft:item/handheld_mace") ||
+                identifier.equals("minecraft:block/block") ||
                 identifier.startsWith("minecraft:builtin/");
+    }
+
+    private static boolean isHandheldParent(String identifier) {
+        return identifier.equals("minecraft:item/handheld") ||
+                identifier.equals("minecraft:item/handheld_rod") ||
+                identifier.equals("minecraft:item/handheld_mace");
     }
 
     static JsonObject builtinModel(String identifier) {

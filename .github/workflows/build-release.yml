@@ -74,7 +74,7 @@ jobs:
           release-artifacts/Twilight.jar
           release-artifacts/Twilight.jar.sha256
           --verify-tag
-          --title "Twilight 1.0 Pre-release"
+          --title "Twilight ${GITHUB_REF_NAME#v}"
           --notes-file RELEASE_NOTES.md
           --prerelease
           --latest=false

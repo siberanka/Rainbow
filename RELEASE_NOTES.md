@@ -1,4 +1,4 @@
-# Twilight 1.0 Pre-release
+# Twilight 1.0.0-pre.2
 
 Twilight is now a server-side Java-to-Bedrock custom-content compiler for
 Geyser. This pre-release produces one `Twilight.jar` for Paper, Folia, and
@@ -13,6 +13,11 @@ Spigot servers; players do not install a client mod.
 - Preserves Bedrock's native bow, crossbow, and fishing-rod behavior for exact
   texture-only recolours. Layered, transformed, animated, and volumetric Java
   items retain their model states, display transforms, and runtime animation.
+- Selects handheld presentation from each resolved Java model's parent chain
+  and preserves authored hand translation, rotation, and scale without
+  implicit fitting, fixing custom axes that appeared in a guitar-like pose.
+- Keeps chat emoji at a stable Bedrock height with fixed 16-pixel Unicode
+  cells and independent bottom alignment, even beside oversized GUI glyphs.
 - Converts supported Java models, bitmap fonts, and custom sounds into bounded,
   validated Bedrock resources and Geyser custom mappings.
 - Builds and deploys packs transactionally, retains last-known-good snapshots,

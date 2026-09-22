@@ -11,7 +11,7 @@ The current capability matrix and version-specific limitations are documented in
 
 ## Visual acceptance tests
 
-These captures come from real Java and Bedrock acceptance sessions. They exercise converted geometry, inventory presentation, item-state selection, layered/custom item assets, and bitmap-font glyphs.
+These captures come from real Java and Bedrock acceptance sessions. They exercise converted geometry, inventory presentation, and item-state selection.
 
 <table>
   <tr>
@@ -23,18 +23,12 @@ These captures come from real Java and Bedrock acceptance sessions. They exercis
     <td><img src="docs/images/acceptance/bedrock-3d-inventory.png" alt="Bedrock inventory showing the converted custom 3D item" width="100%"></td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><strong>Layered and custom item inventory pass</strong><br><img src="docs/images/acceptance/bedrock-layered-items.png" alt="Bedrock inventory showing converted layered and custom item assets" width="78%"></td>
-  </tr>
-  <tr>
     <th>Bow idle state</th>
     <th>Bow full-draw state</th>
   </tr>
   <tr>
     <td><img src="docs/images/acceptance/bedrock-bow-idle.png" alt="Converted Bedrock custom bow in its idle state" width="100%"></td>
     <td><img src="docs/images/acceptance/bedrock-bow-drawn.png" alt="Converted Bedrock custom bow in its full-draw state" width="100%"></td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center"><strong>Bitmap-font and emoji glyph pass</strong><br><img src="docs/images/acceptance/bedrock-emojis.png" alt="Bedrock chat showing converted custom emoji glyphs" width="78%"></td>
   </tr>
 </table>
 
@@ -79,9 +73,9 @@ Each operation writes a dedicated UTF-8 log under `plugins/Twilight/logs`, for e
 
 - Modern Java item-definition trees support plain models, conditions, range dispatch, selects, static composites, and special-model bases where Geyser has an equivalent predicate.
 - Legacy numeric custom-model-data overrides remain supported.
-- Layered 2D textures are composed without smoothing. Java cuboids remain volumetric Bedrock geometry with separate first/third-person left/right and head transforms.
+- Layered 2D textures are composed without smoothing. Java cuboids remain volumetric Bedrock geometry with separate first/third-person left/right and head transforms. Handheld presentation follows the resolved Java model parent, while authored hand translation, rotation, and scale are preserved without implicit fitting.
 - Single-layer texture-only bows and crossbows reuse Bedrock's native pose, pull geometry, and animation controllers. Volumetric legacy pull stages retain separate Java geometry and display transforms behind one runtime-selected Bedrock attachable. Crossbow arrow/rocket loads and fishing-rod cast models become explicit Geyser predicates, preserving their distinct states.
-- Bitmap providers are converted into bounded Bedrock Unicode pages with nearest-neighbor scaling and per-glyph baseline isolation. Named fonts contribute only globally safe, collision-free BMP private-use glyphs.
+- Bitmap providers are converted into fixed 16-pixel-cell Bedrock Unicode pages with nearest-neighbor scaling and per-glyph bottom alignment. A large GUI glyph therefore cannot change an emoji's chat height. Named fonts contribute only globally safe, collision-free BMP private-use glyphs.
 - With `vanilla-override: false`, normal Unicode cells in the Java default font cannot replace Bedrock's vanilla glyphs. Named-font cells that need contextual remapping or collide globally stop strict publication instead of corrupting menus or chat.
 - Explicit `minecraft:` texture references missing from a custom pack can be resolved from a version-matched Mojang client JAR cached under `plugins/Twilight/cache`. Manifest metadata, size, and SHA-1 are verified before use; this never registers vanilla models as custom content.
 - Layered Java `sounds.json` registries, file/event references, OGG assets, weights, pitch, volume, streaming, and attenuation are converted to Bedrock sound definitions. Explicit vanilla sound dependencies use the same version-matched, hash-verified Mojang asset chain.

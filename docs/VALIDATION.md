@@ -10,7 +10,7 @@ $env:GRADLE_OPTS='-Djavax.net.ssl.trustStoreType=Windows-ROOT'
 .\gradlew.bat :twilight:build --no-daemon --no-configuration-cache
 ```
 
-Core tests verify world resolution, archive traversal rejection, content classification, layered legacy items, modern predicate variants, volumetric geometry, named-font collision safety, layered and referenced sounds, deterministic ZIP output, Geyser ownership boundaries, three-snapshot retention, and rollback.
+Core tests verify world resolution, archive traversal rejection, content classification, layered legacy items, modern predicate variants, volumetric geometry, model-parent handheld selection, exact authored hand transforms, stable mixed-size glyph pages, named-font collision safety, layered and referenced sounds, deterministic ZIP output, Geyser ownership boundaries, three-snapshot retention, and rollback.
 
 ## Source audit
 

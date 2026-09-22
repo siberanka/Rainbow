@@ -37,8 +37,8 @@ Implemented:
 - Legacy numeric custom model data.
 - Layered 2D PNG composition and deterministic item atlas entries.
 - Java cuboids, per-face UVs, element rotations, texture atlases, Bedrock geometry and attachables.
-- First-person right/left, third-person right/left, and head display transforms.
-- Geometry-projected hand fitting for oversized and rotated 3D models.
+- First-person right/left, third-person right/left, and head display transforms; authored hand translation, rotation, and scale are preserved without implicit fitting.
+- Model-parent-derived handheld presentation, independent of the mapping's vanilla base item.
 - Native Bedrock bow/crossbow pose and pull controllers for single-layer texture-only replacements.
 - Runtime-selected Java geometry and per-state display transforms for volumetric legacy bow/crossbow pull stages; arrow and rocket charge types remain distinct.
 - Generated Bedrock resource paths remain below Geyser's 80-character portability boundary, including runtime state animations.
@@ -55,7 +55,7 @@ Open release gates:
 
 ## Other custom content
 
-Bitmap providers reachable from `minecraft:default` are converted to Bedrock Unicode BMP pages. Glyphs are scaled independently with a 16-pixel cell limit so oversized GUI providers cannot move normal emoji off the chat baseline. Unreadable generated layers can fall back to a valid lower-priority source asset. Named font definitions are also inspected automatically; collision-free BMP private-use glyphs can join the global Bedrock atlas without losing their Java font context.
+Bitmap providers reachable from `minecraft:default` are converted to Bedrock Unicode BMP pages. Every page uses fixed 16-pixel cells, and each glyph is scaled and bottom-aligned independently so oversized GUI providers cannot change normal emoji height or move them off the chat baseline. Unreadable generated layers can fall back to a valid lower-priority source asset. Named font definitions are also inspected automatically; collision-free BMP private-use glyphs can join the global Bedrock atlas without losing their Java font context.
 
 When `vanilla-override` is disabled, normal Unicode cells from the Java default font are rejected rather than replacing Bedrock's vanilla glyphs. Differing named-font images that reuse one code point and named glyphs outside the private-use range require an outbound component-remapping bridge, so strict publication currently rejects them.
 

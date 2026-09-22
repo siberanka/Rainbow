@@ -2,6 +2,26 @@
 
 All notable changes in Twilight are documented here.
 
+## 1.0.0-pre.2 - 2026-09-22
+
+### Java-to-Bedrock presentation
+
+- Fixed custom tool and weapon pose selection by deriving Geyser's handheld
+  presentation from the resolved Java model parent chain instead of the base
+  Minecraft item identifier.
+- Preserved authored Java first- and third-person translation, rotation, and
+  scale without automatic geometry fitting that could shrink or reposition a
+  model into an incorrect held pose.
+- Fixed chat emoji height by composing every Bedrock Unicode page on a stable
+  16-pixel grid and bottom-aligning each glyph independently, including pages
+  that also contain oversized GUI glyphs.
+
+### Validation
+
+- Added regressions for model-parent pose selection, exact hand transforms,
+  and mixed-size bitmap glyphs sharing one Unicode page.
+- Removed pre-fix pose and emoji captures from the public acceptance gallery.
+
 ## 1.0.0-pre.1 - 2026-09-21
 
 ### Server platform
