@@ -9,6 +9,35 @@ Twilight is a server-side Java-to-Bedrock custom-content compiler for Geyser. It
 
 The current capability matrix and version-specific limitations are documented in [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md). Strict conversion fails closed when content cannot be represented safely.
 
+## Visual acceptance tests
+
+These captures come from real Java and Bedrock acceptance sessions. They exercise converted geometry, inventory presentation, item-state selection, layered/custom item assets, and bitmap-font glyphs.
+
+<table>
+  <tr>
+    <th>Java 3D source</th>
+    <th>Bedrock 3D conversion</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/acceptance/java-3d-inventory.png" alt="Java inventory showing source custom 3D items" width="100%"></td>
+    <td><img src="docs/images/acceptance/bedrock-3d-inventory.png" alt="Bedrock inventory showing the converted custom 3D item" width="100%"></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><strong>Layered and custom item inventory pass</strong><br><img src="docs/images/acceptance/bedrock-layered-items.png" alt="Bedrock inventory showing converted layered and custom item assets" width="78%"></td>
+  </tr>
+  <tr>
+    <th>Bow idle state</th>
+    <th>Bow full-draw state</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/acceptance/bedrock-bow-idle.png" alt="Converted Bedrock custom bow in its idle state" width="100%"></td>
+    <td><img src="docs/images/acceptance/bedrock-bow-drawn.png" alt="Converted Bedrock custom bow in its full-draw state" width="100%"></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><strong>Bitmap-font and emoji glyph pass</strong><br><img src="docs/images/acceptance/bedrock-emojis.png" alt="Bedrock chat showing converted custom emoji glyphs" width="78%"></td>
+  </tr>
+</table>
+
 ## Requirements
 
 - Java 21 or newer
